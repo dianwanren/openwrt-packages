@@ -24,7 +24,27 @@ case "$1" in
 	case "$2" in
 	"avail")
 		json_init
-		json_add_int "avail" "$(df | grep -E '/$' | awk '{print $4}')"
+
+		# 直接询问背景目录所在的文件系统。
+		# 不要再去解析 `df` 全量输出的 "/" 行：在 overlayfs / 新版
+		# OpenWrt 上那一行的字段并不稳定，取不到值时会变成 0。
+		avail=
+		for dir in "$bg_path" "/www/luci-static/argon" "/www" "/"; do
+			[ -d "$dir" ] || continue
+			avail="$(df -k "$dir" 2>/dev/null | awk 'NR > 1 && $4 ~ /^[0-9]+$/ && $4 + 0 > 0 { print $4; exit }')"
+			[ -n "$avail" ] && break
+		done
+
+		# df 拿不到时退回 statvfs，单位统一换算成 KB（前端会再乘 1024）
+		if [ -z "$avail" ]; then
+			avail="$(stat -f -c '%a %S' "$bg_path" 2>/dev/null | awk '{ v = ($1 * $2) / 1024; if (v > 0) printf "%.0f", v }')"
+		fi
+
+		case "$avail" in
+			''|*[!0-9]*) avail=0 ;;
+		esac
+
+		json_add_int "avail" "$avail"
 		json_dump
 		json_cleanup
 		;;
