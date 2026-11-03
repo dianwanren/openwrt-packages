@@ -7,21 +7,35 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=Argon Theme
-LUCI_DEPENDS:=+USE_APK:wget-any +!USE_APK:wget +jsonfilter
-PKG_VERSION:=2.4.7
-PKG_RELEASE:=20260824
+# Older SDKs require the coreutils parent menu to enable coreutils-timeout.
+LUCI_DEPENDS:=+luci-base +USE_APK:wget-any +!USE_APK:wget +jsonfilter +ucode-mod-math +flock +coreutils +coreutils-timeout
+# Keep existing translation package names and the argon-config message domain.
+LUCI_BASENAME:=argon-config
+PKG_VERSION:=3.1.2
+PKG_RELEASE:=20261102
+PKG_LICENSE:=Apache-2.0 MIT
+
+# LuCI derives translations independently of the theme version. Keep release
+# builds deterministic even when the package directory has no Git history.
+ifneq ($(CONFIG_USE_APK),)
+PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)
+else
+# The v3.0.0 IPKs shipped as "unknown", which sorts above numeric versions.
+# Keep this prefix for future IPK translations so a normal install upgrades it.
+PKG_PO_VERSION:=v$(PKG_VERSION)
+endif
 
 CONFIG_LUCI_CSSTIDY:=
+# Ship template source across stable and snapshot runtimes. Precompiled
+# bytecode would require the SDK's ucode format (see issue #715).
+# Disable this package's build step as well, avoiding LuCI's opt-out warning.
+CONFIG_LUCI_UTMIN:=
+LUCI_MINIFY_UT:=0
+
+define Package/luci-theme-argon/conffiles
+/etc/config/argon
+endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
-
-# 同 luci-app-argon-config：构建环境可能丢掉可执行位，rpcd 无法 execv 该脚本，
-# 在线壁纸（bing/unsplash/wallhaven）就会静默失效。编译期强制补回 0755。
-#
-# 必须写在 include luci.mk 之后：define 的名字在解析这一行时就展开，
-# $(LUCI_NAME) 是在 luci.mk 里才定义的。
-define Build/Prepare/$(LUCI_NAME)
-	chmod 0755 $(PKG_BUILD_DIR)/root/usr/libexec/rpcd/luci.argon_wallpaper 2>/dev/null || true
-endef
 
 # call BuildPackage - OpenWrt buildroot signature
