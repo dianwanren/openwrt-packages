@@ -9,7 +9,7 @@
     contents: write
 
   env:
-    PACKAGES: "luci-theme-argon luci-app-argon-config luci-app-honk honk luci-app-momo luci-app-nikki momo nikki mihomo sing-box"
+    PACKAGES: "luci-theme-argon luci-app-argon-config"
 
   jobs:
     sync:
@@ -19,7 +19,7 @@
 
         - name: 只拉取指定文件夹
           run: |
-            git clone --depth 1 --filter=blob:none --sparse https://github.com/kenzok8/small-package upstream
+            git clone --depth 1 --filter=blob:none --sparse https://github.com/kenzok8/openwrt-packages upstream
             cd upstream
             git sparse-checkout set $PACKAGES
 
