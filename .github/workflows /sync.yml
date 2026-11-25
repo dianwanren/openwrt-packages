@@ -9,7 +9,7 @@
     contents: write
 
   env:
-    PACKAGES: "luci-theme-argon luci-app-argon-config"
+    PACKAGES: "luci-theme-argon luci-app-argon-config adguardhome luci-app-adguardhome"
 
   jobs:
     sync:
